@@ -12,6 +12,7 @@ Try using these commands first:
 * **NASA API Integration:** Connects with official NASA media search to get high resolution "PICTURE OF THE DAY".
 
 ## Installation
-''' bash
-git clone [https://github.com/rr-codes4/Slack-bot.git](https://github.com/rr-codes4/Slack-bot.git)
-cd Slack-bot
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/rr-codes4/Slack-bot.git](https://github.com/rr-codes4/Slack-bot.git)
+   cd Slack-bot
