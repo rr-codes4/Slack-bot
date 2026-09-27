@@ -11,6 +11,10 @@ Try using these commands first:
 * **Socket Mode Integration:** Runs continuously using WebSockets without requiring public webhooks.
 * **NASA API Integration:** Connects with official NASA media search to get high resolution "PICTURE OF THE DAY".
 
+### Prerequisites
+* Python 3.10+
+* Slack App configured with Socket Mode and Slash Commands
+
 ## Installation
 1. Clone the repository:
    ```bash
