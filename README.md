@@ -1,11 +1,11 @@
 ## SPACE BOT
-A Python powered Slack bot built with 'SLACK_BOLT' that delivers space exploration imagery and exploration data directly on slack channels using official NASA API and Block kit.
+A Python powered Slack bot built with 'SLACK_BOLT' that delivers space exploration imagery and exploration data directly on slack channels using official NASA API and Block kit.It also provides a real-time ISS location as per longitudes and latitudes.
 
 ## Quick Start
 Try using these commands first:
-/nasa-stream 
-/nasa-mars-rover
-/iss-loc
+1. /nasa-stream 
+2. /nasa-mars-rover
+3. /iss-loc
 
 ## Features
 * **Socket Mode Integration:** Runs continuously using WebSockets without requiring public webhooks.
