@@ -1,7 +1,7 @@
 ## SPACE BOT
 A Python powered Slack bot built with 'SLACK_BOLT' that delivers space exploration imagery and exploration data directly on slack channels using official NASA API and Block kit.It also provides a real-time ISS location as per longitudes and latitudes.
 
-![Demo GIF](./Demo.gif)
+![Demo GIF](Demo.gif)
 
 ## Quick Start
 Try using these commands first:
