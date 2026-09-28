@@ -7,7 +7,6 @@ A Python powered Slack bot built with 'SLACK_BOLT' that delivers space explorati
 Try using these commands first:
 1. /nasa-stream 
 2. /nasa-mars-rover
-3. /iss-loc
 
 ## Features
 * **Socket Mode Integration:** Runs continuously using WebSockets without requiring public webhooks.
