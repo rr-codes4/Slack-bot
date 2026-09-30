@@ -5,7 +5,7 @@ A Python powered Slack bot built with 'SLACK_BOLT' that delivers space explorati
 
 ## Quick Start
 Try using these commands first:
-1. /nasa-stream 
+1. /nasa-stream (Sometimes this command could take longer than usual but it works after few secs)  
 2. /nasa-mars-rover
 3. /iss-location
 4. /space-fact
