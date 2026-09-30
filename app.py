@@ -4,6 +4,7 @@ load_dotenv()
 import random
 import requests
 import json
+import time
 import urllib.request
 from slack_bolt import App  
 from slack_bolt.adapter.socket_mode import SocketModeHandler 
@@ -186,19 +187,38 @@ def handle_help(ack,respond):
 @app.command("/nasa-stream")
 def handle_nasa_stream(ack, respond):
     ack()
-    try:
-        response = requests.get(
-            "https://api.nasa.gov/planetary/apod",
-            params={"api_key": "DEMO_KEY"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        data = response.json()
+    
+    data = None
+    last_error = None
 
+    #Retry up to 3 times to handle NASA API slowness/timeouts
+    for attempt in range(3):
+        try:
+            response = requests.get(
+                "https://api.nasa.gov/planetary/apod",
+                params={"api_key": NASA_API_KEY},
+                timeout=25,  # Increased timeout from 10s to 25s
+            )
+            response.raise_for_status()
+            data = response.json()
+            break  # Success! Exit loop
+        except requests.RequestException as err:
+            last_error = err
+            time.sleep(1)  # Wait 1s before retrying
+
+    #Fallback if NASA completely fails after 3 retries
+    if not data:
+        respond(
+            "🚀 NASA's servers are taking a bit longer than usual to respond. "
+            "Please try running `/nasa-stream` again in a few seconds!"
+        )
+        return
+
+    try:
         if data.get("error"):
             raise RuntimeError(data["error"].get("message", "NASA returned an error"))
 
-        title = data.get('title', 'NASA Picture of the day')
+        title = data.get('title', 'NASA Picture of the Day')
         image_url = data.get('url', '')
         explanation = data.get('explanation', '')[:300]
         media_type = data.get('media_type')
@@ -230,10 +250,9 @@ def handle_nasa_stream(ack, respond):
             })
 
         respond(blocks=blocks)
-    except requests.RequestException as error:
-        respond(f"Error fetching NASA APOD: {error}")
+
     except (ValueError, RuntimeError) as error:
-        respond(f"Error reading NASA APOD response: {error}")
+        respond("⚠️ Could not parse NASA APOD data right now. Please try again in a moment!")
    
 
 if __name__ == "__main__":
