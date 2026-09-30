@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(Path(__file__).with_name("for.env"))
 import random
 import requests
 import json
@@ -62,18 +63,33 @@ import json
 @app.command("/nasa-apod")  
 def handle_nasa_apod(ack, respond):
     ack()
-    try:
-        url = "https://api.nasa.gov/planetary/apod"
-        req = urllib.request.urlopen(f"{url}?api_key={NASA_API_KEY}")
-        data = json.loads(req.read().decode('utf-8'))
+    data = None
+    for attempt in range(3):
+        try:
+            response = requests.get(
+                "https://api.nasa.gov/planetary/apod",
+                params={"api_key": NASA_API_KEY},
+                timeout=(5, 20),
+            )
+            response.raise_for_status()
+            data = response.json()
+            break
+        except requests.RequestException:
+            if attempt < 2:
+                time.sleep(attempt + 1)
 
-        title = data.get('title', 'NASA Picture of the day')
-        image_url = data.get('url' , '')
-        explanation = data.get('explanation', '')[:200]
+    if data is None:
+        respond("NASA's APOD service is taking too long to respond. Please try again shortly.")
+        return
 
-        respond(f"**{title}**\n{image_url}\n\n_{explanation}_")
-    except Exception as e:
-        respond(f"Error fetching NASA APOD: {str(e)}")
+    if data.get("error"):
+        respond(f"NASA could not return APOD: {data['error'].get('message', 'Unknown API error')}")
+        return
+
+    title = data.get('title', 'NASA Picture of the day')
+    image_url = data.get('url', '')
+    explanation = data.get('explanation', '')[:200]
+    respond(f"**{title}**\n{image_url}\n\n_{explanation}_")
 
 @app.command("/nasa-mars-rover")
 def handle_nasa_mars_rover(ack, respond):
