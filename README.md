@@ -8,7 +8,6 @@ Try using these commands first:
 1. /nasa-stream (Sometimes this command could take longer than usual but it works after few secs)  
 2. /nasa-mars-rover
 3. /iss-location
-4. /space-fact
 5. /space-jokes
 
 
