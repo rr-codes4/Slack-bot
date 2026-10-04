@@ -1,4 +1,5 @@
 .env
+for.env
 .venv/
 venv/
 ENV/
