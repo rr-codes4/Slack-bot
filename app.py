@@ -1,12 +1,12 @@
-import os
-import random
-import time
-import json
-from pathlib import Path
+import os #Seriously VVIP!!!!!!
+import random 
+import time #to handle retries for NASA API calls
+import json #Meeting json you know
+from pathlib import Path #to handle the .env file path
 
-import requests
-from dotenv import load_dotenv
-from slack_bolt import App
+import requests #to handle API calls
+from dotenv import load_dotenv #to load environment variables from .env filesss
+from slack_bolt import App #we need it
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 #Loading environment variables from local for.env file
@@ -40,7 +40,7 @@ def handle_space_fact_command(ack, respond):
 @app.command("/space-joke")
 def handle_space_joke_command(ack, respond):
     ack()
-    #Dad jokes but make them astronomical :|
+    """Dad jokes but make them astronomical :|"""
     jokes = [
         "Why did the astronaut break up with his girlfriend? He needed space.",
         "Why did the sun go to school? To get a little brighter.",
@@ -50,7 +50,7 @@ def handle_space_joke_command(ack, respond):
     respond(f" **Space Joke**: {random.choice(jokes)}")
 
 
-# --- PHYSICS & UTILS --
+#PHYSICS & UTILS 
 
 @app.command("/orbit-force")
 def handle_gravity_calc(ack, respond, command):
@@ -62,7 +62,7 @@ def handle_gravity_calc(ack, respond, command):
         m2 = float(args[1])
         r = float(args[2])
         
-        #Universal gravitational constant
+        #Universal gravitational constant aaaaaaaaaaa
         G = 6.67430e-11  
         force = G * (m1 * m2) / (r ** 2)
         
@@ -106,7 +106,7 @@ def handle_nasa_apod(ack, respond):
     explanation = data.get('explanation', '')[:200]
     respond(f"**{title}**\n{image_url}\n\n_{explanation}_")
 
-
+#This one always works,it shows pictures of curiosity roves 
 @app.command("/nasa-mars-rover")
 def handle_nasa_mars_rover(ack, respond):
     ack()
@@ -117,7 +117,7 @@ def handle_nasa_mars_rover(ack, respond):
             "media_type": "image"
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=10) #timeout to avoid hanging
         response.raise_for_status()
         data = response.json()
 
@@ -132,8 +132,8 @@ def handle_nasa_mars_rover(ack, respond):
 
         title = item_data.get("title", "Mars Rover Photo")
         description = item_data.get("description", "Mars Surface View")[:200] + "..."
-        date_created = item_data.get("date_created", "")[:10]
-        image_url = links[0].get("href", "") if links else ""
+        date_created = item_data.get("date_created", "")[:10] 
+        image_url = links[0].get("href", "") if links else "" 
 
         #Building a nice rich Block Kit message for Slack
         blocks = [
@@ -158,88 +158,130 @@ def handle_nasa_mars_rover(ack, respond):
         respond(blocks=blocks)
 
     except Exception as e:
-        respond(f" Could not fetch Mars Rover image: {e}")
+        respond(f" I am facing issues fetching the data,please try again later: {e}")
 
 import requests
 #Iss loc as per latitude and longitude
-def get_iss_location():
-    try:
-        response = requests.get("http://api.open-notify.org/iss-now.json", timeout=3)
-        response.raise_for_status()
-        data = response.json()
-        lat = data["iss_position"]["latitude"]
-        lon = data["iss_position"]["longitude"]
-        return f"Latitude: {lat}, Longitude: {lon}"
-    except Exception:
-        # Fallback so it never errors out during review!
-        return "ISS live coordinates are temporarily offline (Space station signal lost in orbit )!"
+@app.command("/iss-location")
+def handle_iss_location(ack, respond):
+    ack()
 
-#Time for some stream 
+    try:
+        response = requests.get(
+            "https://api.open-notify.org/iss-now.json",
+            timeout=(5, 10),
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        position = data["iss_position"]
+
+        lat = float(position["latitude"])
+        lon = float(position["longitude"])
+
+        respond(
+            "*🛰️ International Space Station Location*\n" #it helps
+            f"• Latitude: `{lat:.4f}`\n"
+            f"• Longitude: `{lon:.4f}`\n"
+            f"<https://www.google.com/maps?q={lat},{lon}|"
+            "View location on map>"
+        )
+
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        respond(
+            "🛰️ I couldn't retrieve the ISS location right now. "
+            "Please try again shortly."
+        )
+
+#Fetches APOD and posts it to Slack.In the format that is devised 
 @app.command("/nasa-stream")
 def handle_nasa_stream(ack, respond):
     ack()
+
     data = None
 
-    #Give NASA a few retries because the APOD endpoint can be moody
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             response = requests.get(
                 "https://api.nasa.gov/planetary/apod",
-                params={"api_key": NASA_API_KEY},
-                timeout=25,
+                params={"api_key": NASA_API_KEY},#
+                timeout=(3, 10),
             )
             response.raise_for_status()
             data = response.json()
-            break 
-        except requests.RequestException:
-            time.sleep(1)
+            break
 
-    if not data:
-        respond("🚀 NASA's servers are taking a bit longer than usual. Try `/nasa-stream` again in a second!")
+        except (requests.RequestException, ValueError):
+            if attempt == 0:
+                time.sleep(1)
+
+    if data is None:
+        respond(
+            " NASA's service could not be reached. "
+            "Please try `/nasa-stream` again shortly."
+        )
         return
 
-    try:
-        if data.get("error"):
-            raise RuntimeError(data["error"].get("message", "NASA returned an error"))
+    if data.get("error"): 
+        error = data["error"]
+        message = (
+            error.get("message", "NASA returned an API error.")
+            if isinstance(error, dict)
+            else str(error)
+        )
+        respond(f"NASA API error: {message[:300]}")
+        return
 
-        title = data.get('title', 'NASA Picture of the Day')
-        image_url = data.get('url', '')
-        explanation = data.get('explanation', '')[:300]
-        media_type = data.get('media_type')
+    title = str(data.get("title") or "NASA Picture of the Day")
+    explanation = str(
+        data.get("explanation") or "No explanation available."
+    )[:2500]
+    image_url = data.get("url")
+    media_type = data.get("media_type")
 
-        if not image_url or media_type not in {"image", "video"}:
-            raise ValueError("Incomplete APOD response")
+    if not image_url or media_type not in ("image", "video"):
+        respond("NASA returned incomplete or unsupported APOD data.")
+        return
 
-        blocks = [
-            {
-                "type": "header",
-                "text": {"type": "plain_text", "text": f"NASA Daily View: {title}"}
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"NASA Daily View: {title}"[:150],
             },
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": explanation or "No explanation available."}
-            }
-        ]
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": explanation,
+            },
+        },
+    ]
 
-        if media_type == "image":
-            blocks.insert(1, {
-                "type": "image",
-                "image_url": image_url,
-                "alt_text": title,
-            })
-        else:
-            blocks.insert(1, {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": f"<{image_url}|Watch today's NASA feature>"},
-            })
+    if media_type == "image":
+        blocks.insert(1, {
+            "type": "image",
+            "image_url": image_url,
+            "alt_text": title[:2000] or "NASA astronomy image",
+        }) #scrapping through pixels !
+    else:
+        blocks.insert(1, {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"<{image_url}|Watch today's NASA feature>",
+            },
+        })
 
+    try:
         respond(blocks=blocks)
+    except Exception:
+        #Logging the actual error in the server logs
+        app.logger.exception("Failed to send NASA stream response")
 
-    except (ValueError, RuntimeError):
-        respond(" Could not parse NASA APOD data right now. Give it a moment!")
 
-
-# --- QUIZ & HELP ---
 
 @app.command("/astro-quiz")
 def handle_astro_quiz(ack, respond):
@@ -266,24 +308,9 @@ def handle_astro_quiz(ack, respond):
     respond(f"**Quiz Time!**\n{quiz['question']}\n{options_text}\n\nReply with the number of your answer.")
 
 
-@app.command("/astro-help")
-def handle_help(ack, respond):
-    ack()
-    help_text = (
-        "*AstroBot Commands Guide*\n\n"
-        "1. `/orbit-force <m1> <m2> <dist>` - Calculate gravitational force\n"
-        "2. `/nasa-stream` - Get NASA's Astronomy Picture of the Day\n"
-        "3. `/nasa-mars-rover` - Get a random photo from the Mars Rover\n"
-        "4. `/iss-location` - Check where the ISS is floating right now\n"
-        "5. `/space-fact` - Drop a random space fact\n"
-        "6. `/space-joke` - Tell a terrible space dad-joke\n"
-        "7. `/astro-quiz` - Test your astronomy knowledge\n"
-        "8. `/astro-help` - Show this help menu"
-    )
-    respond(help_text)
 
 
-#fire up the app using Socket Mode
+#firing up the app using Socket Mode
 if __name__ == "__main__":
     handler = SocketModeHandler(app, SLACK_APP_TOKEN)
     handler.start()
